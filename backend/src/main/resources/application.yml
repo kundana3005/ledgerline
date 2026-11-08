@@ -1,0 +1,18 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: backend
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ledgerline
+    username: ledgerline
+    password: ledgerline123
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+app:
+  jwt-secret: kyBaTx0W5PhOwj8pvYUzMQtfg9nJ6ZqSr4duGoDlbAsie2EL
+  jwt-expiry-minutes: 30

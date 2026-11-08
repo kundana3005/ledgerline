@@ -31,4 +31,13 @@ public class ApiException extends RuntimeException {
         return new ApiException(HttpStatus.CONFLICT, "IDEMPOTENCY_CONFLICT",
                 "Idempotency key was already used with a different request");
     }
+    public static ApiException conflict(String msg) {
+        return new ApiException(HttpStatus.CONFLICT, "CONFLICT", msg);
+    }
+    public static ApiException unprocessable(String msg) {
+        return new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE", msg);
+    }
+    public static ApiException resourceNotFound(String msg) {
+        return new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", msg);
+    }
 }

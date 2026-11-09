@@ -1,0 +1,7 @@
+   spring:
+     datasource:
+       url: jdbc:postgresql://localhost:5432/ledgerline_test
+       username: ledgerline
+       password: ledgerline123
+       hikari:
+         maximum-pool-size: 20

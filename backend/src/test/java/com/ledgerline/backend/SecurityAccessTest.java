@@ -107,7 +107,18 @@ class SecurityAccessTest extends IntegrationTest {
                 .content(loginJson(holder.getUsername(), "Test@12345")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.token").isNotEmpty());
     }
+    @Test void tokenOfDisabledUser_isRejectedImmediately() throws Exception {
+        User u = newUser(Role.ACCOUNT_HOLDER);
+        String token = bearer(u);
+        mvc.perform(MockMvcRequestBuilders.get("/api/accounts").header("Authorization", token))
+                .andExpect(status().isOk());
 
+        u.setEnabled(false);
+        users.save(u);
+
+        mvc.perform(MockMvcRequestBuilders.get("/api/accounts").header("Authorization", token))
+                .andExpect(status().isUnauthorized());
+    }
     @Test void disabledUserCannotLogIn() throws Exception {
         User u = newUser(Role.ACCOUNT_HOLDER);
         u.setEnabled(false);

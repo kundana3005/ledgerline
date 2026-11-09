@@ -72,7 +72,13 @@ public class LedgerService {
         // 2. Resolve ids first (no entity loaded yet, so no stale balances)
         Long srcId = accounts.findIdByAccountNumber(srcNumber).orElseThrow(ApiException::notFound);
         Long dstId = accounts.findIdByAccountNumber(dstNumber).orElseThrow(ApiException::notFound);
-        if (srcId.equals(dstId)) throw ApiException.badRequest("Source and destination must be different accounts");
+                if (srcId.equals(dstId)) {
+            if (type == TransactionType.TRANSFER) {
+                throw ApiException.badRequest("Source and destination must be different accounts");
+            }
+            // Deposit/withdraw naming the system account: indistinguishable from an unknown account
+            throw ApiException.notFound();
+        }
 
         // 3. Lock both rows in id order (blocks simultaneous withdrawals, prevents deadlocks)
         Map<Long, Account> locked = accounts.lockAllByIdIn(List.of(srcId, dstId)).stream()

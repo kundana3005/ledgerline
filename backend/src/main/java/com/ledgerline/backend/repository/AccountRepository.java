@@ -1,6 +1,7 @@
 package com.ledgerline.backend.repository;
 
 import com.ledgerline.backend.entity.Account;
+import com.ledgerline.backend.entity.AccountStatus;
 import com.ledgerline.backend.entity.AccountType;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.*;
@@ -20,13 +21,13 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     boolean existsByAccountNumber(String accountNumber);
 
     long countByTypeNot(AccountType type);
-
+    long countByTypeNotAndStatus(AccountType type, AccountStatus status);
     @Query("select a.id from Account a where a.accountNumber = :number")
     Optional<Long> findIdByAccountNumber(@Param("number") String number);
 
     @Query("select a from Account a left join fetch a.owner order by a.id")
     List<Account> findAllWithOwner();
-
+    
     @Query("select sum(a.balance) from Account a where a.type <> :type")
     BigDecimal totalBalanceExcluding(@Param("type") AccountType type);
 

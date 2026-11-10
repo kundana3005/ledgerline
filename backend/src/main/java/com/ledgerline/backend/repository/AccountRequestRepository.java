@@ -21,7 +21,7 @@ public interface AccountRequestRepository extends JpaRepository<AccountRequest, 
     List<AccountRequest> findByUser_IdOrderByIdDesc(Long userId);
 
     long countByStatus(AccountRequestStatus status);
-        long countByTypeNotAndStatus(AccountType type, AccountStatus status);
+    
     @EntityGraph(attributePaths = {"user"})
     Page<AccountRequest> findByStatus(AccountRequestStatus status, Pageable pageable);
 

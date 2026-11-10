@@ -25,19 +25,20 @@ import java.util.List;
 @Service
 public class ReportService {
     private static final ZoneOffset UTC = ZoneOffset.UTC;
-
-    private final TransactionRepository txs;
+    private static final Instant FAR_FUTURE = Instant.parse("3000-01-01T00:00:00Z");
+        private final TransactionRepository txs;
     private final LedgerEntryRepository ledgerRepo;
     private final AuditLogRepository auditRepo;
     private final AccountRepository accounts;
     private final UserRepository users;
+    private final AccountRequestRepository requestRepo;
 
     public ReportService(TransactionRepository txs, LedgerEntryRepository ledgerRepo,
-                         AuditLogRepository auditRepo, AccountRepository accounts, UserRepository users) {
+                         AuditLogRepository auditRepo, AccountRepository accounts, UserRepository users,
+                         AccountRequestRepository requestRepo) {
         this.txs = txs; this.ledgerRepo = ledgerRepo; this.auditRepo = auditRepo;
-        this.accounts = accounts; this.users = users;
+        this.accounts = accounts; this.users = users; this.requestRepo = requestRepo;
     }
-
     /** ownerId != null: only transactions touching that user's accounts. ownerId == null: all (auditor/admin). */
     @Transactional(readOnly = true)
     public PageResponse<TransactionSummary> searchTransactions(Long ownerId, TransactionFilter f, int page, int size) {
@@ -101,8 +102,20 @@ public class ReportService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<LedgerEntryView> ledgerEntries(String search, int page, int size) {
-        return PageResponse.of(ledgerRepo.search(like(search), pageable(page, size)).map(LedgerEntryView::from));
+    public PageResponse<LedgerEntryView> ledgerEntries(String search, String account, TransactionType type,
+                                                       LocalDate from, LocalDate to, int page, int size) {
+        Instant fromTs = from == null ? Instant.EPOCH : from.atStartOfDay(UTC).toInstant();
+        Instant toTs = to == null ? FAR_FUTURE : to.plusDays(1).atStartOfDay(UTC).toInstant();
+        return PageResponse.of(ledgerRepo.search(like(search), like(account), type == null ? "%" : type.name(),
+                fromTs, toTs, pageable(page, size)).map(LedgerEntryView::from));
+    }
+
+    @Transactional(readOnly = true)
+    public TransactionDetail transactionDetail(String reference) {
+        Transaction t = txs.findByReference(reference)
+                .orElseThrow(() -> ApiException.resourceNotFound("Transaction not found"));
+        return new TransactionDetail(toSummary(t, true),
+                ledgerRepo.findByTransactionIdOrderByIdAsc(t.getId()).stream().map(LedgerEntryView::from).toList());
     }
 
     @Transactional(readOnly = true)
@@ -115,10 +128,13 @@ public class ReportService {
     public AdminStats stats() {
         BigDecimal debits = nz(ledgerRepo.totalByDirection(EntryDirection.DEBIT));
         BigDecimal credits = nz(ledgerRepo.totalByDirection(EntryDirection.CREDIT));
-        return new AdminStats(
+                return new AdminStats(
                 users.count(), users.countByRole(Role.ADMIN), users.countByRole(Role.ACCOUNT_HOLDER),
                 users.countByRole(Role.AUDITOR),
-                accounts.countByTypeNot(AccountType.SYSTEM), nz(accounts.totalBalanceExcluding(AccountType.SYSTEM)),
+                users.countByStatus(UserStatus.PENDING_APPROVAL), requestRepo.countByStatus(AccountRequestStatus.PENDING),
+                accounts.countByTypeNot(AccountType.SYSTEM),
+                accounts.countByTypeNotAndStatus(AccountType.SYSTEM, AccountStatus.ACTIVE),
+                nz(accounts.totalBalanceExcluding(AccountType.SYSTEM)),
                 txs.count(), txs.countByType(TransactionType.DEPOSIT), txs.countByType(TransactionType.WITHDRAWAL),
                 txs.countByType(TransactionType.TRANSFER), nz(txs.totalVolume()),
                 debits, credits, debits.compareTo(credits) == 0);

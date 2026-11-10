@@ -30,6 +30,7 @@ public class AuthService {
         }
         User user = found.get();
         audit.logIndependent(user.getId(), "LOGIN_SUCCESS", "USER", String.valueOf(user.getId()), null);
-        return new LoginResponse(tokens.issue(user), user.getId(), user.getUsername(), user.getRole().name());
+                return new LoginResponse(tokens.issue(user), user.getId(), user.getUsername(),
+                user.getRole().name(), user.getStatus().name());
     }
 }

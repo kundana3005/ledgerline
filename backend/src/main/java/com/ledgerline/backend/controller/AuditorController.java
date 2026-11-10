@@ -27,11 +27,21 @@ public class AuditorController {
         return reports.searchTransactions(null, new TransactionFilter(search, type, status, from, to), page, size);
     }
 
-    @GetMapping("/ledger")
-    public PageResponse<LedgerEntryView> ledger(@RequestParam(required = false) String search,
-                                                @RequestParam(defaultValue = "0") int page,
-                                                @RequestParam(defaultValue = "20") int size) {
-        return reports.ledgerEntries(search, page, size);
+        @GetMapping("/ledger")
+    public PageResponse<LedgerEntryView> ledger(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String account,
+            @RequestParam(required = false) TransactionType type,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return reports.ledgerEntries(search, account, type, from, to, page, size);
+    }
+
+    @GetMapping("/transactions/{reference}")
+    public TransactionDetail transaction(@PathVariable String reference) {
+        return reports.transactionDetail(reference);
     }
 
     @GetMapping("/audit-logs")

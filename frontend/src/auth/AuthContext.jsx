@@ -3,7 +3,11 @@ import { api, setUnauthorizedHandler } from '../api/client';
 
 const Ctx = createContext(null);
 export const useAuth = () => useContext(Ctx);
-export const homeFor = (role) => (role === 'ADMIN' ? '/admin' : role === 'AUDITOR' ? '/auditor' : '/');
+export const homeFor = (user) => {
+  if (user.role === 'ADMIN') return '/admin';
+  if (user.role === 'AUDITOR') return '/auditor';
+  return user.status === 'ACTIVE' ? '/' : '/onboarding';
+};
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -20,12 +24,22 @@ export function AuthProvider({ children }) {
 
   const login = async (identifier, password) => {
     const r = await api('/api/auth/login', { method: 'POST', body: { identifier, password }, auth: false });
-    const u = { id: r.userId, username: r.username, role: r.role };
+    const u = { id: r.userId, username: r.username, role: r.role, status: r.status };
     sessionStorage.setItem('ll_token', r.token);
     sessionStorage.setItem('ll_user', JSON.stringify(u));
     setUser(u);
     return u;
   };
 
-  return <Ctx.Provider value={{ user, login, logout }}>{children}</Ctx.Provider>;
+  // Called when the server reports a different status than the one stored at login
+  const setStatus = useCallback((status) => {
+    setUser((prev) => {
+      if (!prev || prev.status === status) return prev;
+      const next = { ...prev, status };
+      sessionStorage.setItem('ll_user', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  return <Ctx.Provider value={{ user, login, logout, setStatus }}>{children}</Ctx.Provider>;
 }

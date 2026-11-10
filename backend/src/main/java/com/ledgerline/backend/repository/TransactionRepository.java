@@ -4,6 +4,7 @@ import com.ledgerline.backend.entity.Transaction;
 import com.ledgerline.backend.entity.TransactionType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.*;
 import java.math.BigDecimal;
@@ -13,7 +14,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
         JpaSpecificationExecutor<Transaction> {
 
     Optional<Transaction> findByInitiatedBy_IdAndIdempotencyKey(Long userId, String idempotencyKey);
-
+    @EntityGraph(attributePaths = {"sourceAccount", "destinationAccount", "initiatedBy"})
+    Optional<Transaction> findByReference(String reference);
     @Override
     @EntityGraph(attributePaths = {"sourceAccount", "destinationAccount", "initiatedBy"})
     Page<Transaction> findAll(Specification<Transaction> spec, Pageable pageable);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Landmark } from 'lucide-react';
 import { useAuth, homeFor } from '../auth/AuthContext';
 import { Alert } from '../components/ui';
@@ -12,7 +12,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  if (user) return <Navigate to={homeFor(user.role)} replace />;
+  if (user) return <Navigate to={homeFor(user)} replace />;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -20,7 +20,7 @@ export default function Login() {
     setBusy(true); setError('');
     try {
       const u = await login(identifier.trim(), password);
-      nav(homeFor(u.role), { replace: true });
+      nav(homeFor(u), { replace: true });
     } catch (err) {
       setError(err.status === 401 ? 'Invalid username or password.' : err.message);
     } finally { setBusy(false); }
@@ -39,6 +39,7 @@ export default function Login() {
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
         </label>
         <button className="btn primary" disabled={busy}>{busy ? 'Signing in...' : 'Sign in'}</button>
+        <p className="muted">New here? <Link className="link" to="/register">Create an account</Link></p>
         <div className="demo">
           <strong>Demo logins</strong>
           <span>alice / Alice@123 (account holder)</span>

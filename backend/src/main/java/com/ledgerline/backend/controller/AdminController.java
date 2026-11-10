@@ -1,6 +1,8 @@
 package com.ledgerline.backend.controller;
 
 import com.ledgerline.backend.dto.*;
+import com.ledgerline.backend.entity.AccountRequestStatus;
+import com.ledgerline.backend.entity.Role;
 import com.ledgerline.backend.service.AdminService;
 import com.ledgerline.backend.service.ReportService;
 import jakarta.validation.Valid;
@@ -20,19 +22,46 @@ public class AdminController {
         this.admin = admin; this.reports = reports;
     }
 
+    private static Long id(Jwt jwt) { return Long.valueOf(jwt.getSubject()); }
+
     @GetMapping("/users")
-    public List<UserSummary> users() { return admin.listUsers(); }
+    public PageResponse<UserSummary> users(@RequestParam(required = false) String search,
+                                           @RequestParam(required = false) Role role,
+                                           @RequestParam(required = false) String status,
+                                           @RequestParam(defaultValue = "0") int page,
+                                           @RequestParam(defaultValue = "20") int size) {
+        return admin.searchUsers(search, role, status, page, size);
+    }
 
     @PostMapping("/users")
     @ResponseStatus(HttpStatus.CREATED)
     public UserSummary createUser(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CreateUserRequest req) {
-        return admin.createUser(Long.valueOf(jwt.getSubject()), req);
+        return admin.createUser(id(jwt), req);
     }
 
     @PutMapping("/users/{id}/enabled")
     public UserSummary setEnabled(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
                                   @Valid @RequestBody SetEnabledRequest req) {
-        return admin.setUserEnabled(Long.valueOf(jwt.getSubject()), id, req.enabled());
+        return admin.setUserEnabled(id(jwt), id, req.enabled());
+    }
+
+    @PutMapping("/users/{id}/approval")
+    public UserSummary reviewRegistration(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
+                                          @Valid @RequestBody ReviewRequest req) {
+        return admin.reviewRegistration(id(jwt), id, req.approved(), req.reason());
+    }
+
+    @GetMapping("/account-requests")
+    public PageResponse<AccountRequestAdminView> accountRequests(
+            @RequestParam(defaultValue = "PENDING") AccountRequestStatus status,
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return admin.listAccountRequests(status, page, size);
+    }
+
+    @PutMapping("/account-requests/{id}/decision")
+    public AccountRequestAdminView reviewAccountRequest(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
+                                                        @Valid @RequestBody ReviewRequest req) {
+        return admin.reviewAccountRequest(id(jwt), id, req.approved(), req.reason());
     }
 
     @GetMapping("/accounts")
@@ -42,13 +71,13 @@ public class AdminController {
     @ResponseStatus(HttpStatus.CREATED)
     public AdminAccountView createAccount(@AuthenticationPrincipal Jwt jwt,
                                           @Valid @RequestBody CreateAccountRequest req) {
-        return admin.createAccount(Long.valueOf(jwt.getSubject()), req);
+        return admin.createAccount(id(jwt), req);
     }
 
     @PutMapping("/accounts/{id}/status")
     public AdminAccountView setStatus(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
                                       @Valid @RequestBody SetAccountStatusRequest req) {
-        return admin.setAccountStatus(Long.valueOf(jwt.getSubject()), id, req.status());
+        return admin.setAccountStatus(id(jwt), id, req.status());
     }
 
     @GetMapping("/stats")

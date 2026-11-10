@@ -30,10 +30,17 @@ public interface LedgerEntryRepository extends Repository<LedgerEntry, Long> {
     @Query("select sum(e.amount) from LedgerEntry e where e.direction = :direction")
     BigDecimal totalByDirection(@Param("direction") EntryDirection direction);
 
-    @EntityGraph(attributePaths = {"transaction", "account"})
+        @EntityGraph(attributePaths = {"transaction", "account"})
     @Query(value = "select e from LedgerEntry e " +
-                   "where lower(e.account.accountNumber) like :q or lower(e.transaction.reference) like :q",
+                   "where (lower(e.account.accountNumber) like :q or lower(e.transaction.reference) like :q) " +
+                   "and lower(e.account.accountNumber) like :acct " +
+                   "and cast(e.transaction.type as String) like :type " +
+                   "and e.createdAt >= :fromTs and e.createdAt < :toTs",
            countQuery = "select count(e) from LedgerEntry e " +
-                   "where lower(e.account.accountNumber) like :q or lower(e.transaction.reference) like :q")
-    Page<LedgerEntry> search(@Param("q") String q, Pageable pageable);
+                   "where (lower(e.account.accountNumber) like :q or lower(e.transaction.reference) like :q) " +
+                   "and lower(e.account.accountNumber) like :acct " +
+                   "and cast(e.transaction.type as String) like :type " +
+                   "and e.createdAt >= :fromTs and e.createdAt < :toTs")
+    Page<LedgerEntry> search(@Param("q") String q, @Param("acct") String acct, @Param("type") String type,
+                             @Param("fromTs") Instant fromTs, @Param("toTs") Instant toTs, Pageable pageable);
 }

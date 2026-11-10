@@ -1,6 +1,7 @@
 package com.ledgerline.backend.config;
 
 import com.ledgerline.backend.entity.User;
+import com.ledgerline.backend.entity.UserStatus;
 import com.ledgerline.backend.repository.UserRepository;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,10 +37,12 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/api/health", "/api/auth/login").permitAll()
+                .requestMatchers("/api/health", "/api/auth/login", "/api/auth/register").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/auditor/**").hasAnyRole("AUDITOR", "ADMIN")
                 .requestMatchers("/api/auditor/**").denyAll()
+                .requestMatchers("/api/onboarding/status").hasAnyRole("APPLICANT", "ACCOUNT_HOLDER")
+                .requestMatchers("/api/onboarding/**").hasRole("ACCOUNT_HOLDER")
                 .requestMatchers("/api/accounts/**", "/api/transactions/**").hasRole("ACCOUNT_HOLDER")
                 .anyRequest().authenticated())
             .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(jwtConverter(users))));
@@ -52,8 +55,10 @@ public class SecurityConfig {
             User user = users.findById(Long.valueOf(jwt.getSubject()))
                     .filter(User::isEnabled)
                     .orElseThrow(() -> new BadCredentialsException("Account disabled or removed"));
+            // Users who are not approved yet only get the APPLICANT authority
+            String role = user.getStatus() == UserStatus.ACTIVE ? user.getRole().name() : "APPLICANT";
             return new JwtAuthenticationToken(jwt,
-                    List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())), jwt.getSubject());
+                    List.of(new SimpleGrantedAuthority("ROLE_" + role)), jwt.getSubject());
         };
     }
 

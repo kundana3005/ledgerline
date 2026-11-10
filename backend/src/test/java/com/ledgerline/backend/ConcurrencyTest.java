@@ -20,21 +20,38 @@ class ConcurrencyTest extends IntegrationTest {
 
     /** Starts all tasks at the same instant. A task returns true on success; any unexpected exception fails the test. */
     private List<Boolean> race(int n, IntFunction<Callable<Boolean>> task) throws Exception {
-        ExecutorService pool = Executors.newFixedThreadPool(n);
+    ExecutorService pool = Executors.newFixedThreadPool(n);
+
+    try {
         CountDownLatch ready = new CountDownLatch(n);
         CountDownLatch go = new CountDownLatch(1);
         List<Future<Boolean>> futures = new ArrayList<>();
+
         for (int i = 0; i < n; i++) {
             Callable<Boolean> c = task.apply(i);
-            futures.add(pool.submit(() -> { ready.countDown(); go.await(); return c.call(); }));
+
+            futures.add(pool.submit(() -> {
+                ready.countDown();
+                go.await();
+                return c.call();
+            }));
         }
+
         ready.await();
         go.countDown();
+
         List<Boolean> results = new ArrayList<>();
-        for (Future<Boolean> f : futures) results.add(f.get(60, TimeUnit.SECONDS));   // a deadlock would time out here
-        pool.shutdown();
+
+        for (Future<Boolean> f : futures) {
+            results.add(f.get(60, TimeUnit.SECONDS));
+        }
+
         return results;
+
+    } finally {
+        pool.shutdownNow();
     }
+}
 
     @Test void tenSimultaneousWithdrawals_cannotOverdraw() throws Exception {
         User u = newUser(Role.ACCOUNT_HOLDER);

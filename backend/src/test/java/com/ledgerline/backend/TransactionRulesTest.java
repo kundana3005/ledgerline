@@ -131,7 +131,7 @@ class TransactionRulesTest extends IntegrationTest {
     }
 
     @Test void frozenAccount_cannotTransact() throws Exception {
-        jdbc.update("update accounts set status = 'FROZEN' where account_number = ?", a1.getAccountNumber());
+        jdbc.update("update accounts set status = 'SUSPENDED' where account_number = ?", a1.getAccountNumber());
         post(alice, WITHDRAW, key(), dep(a1, "10.00")).andExpect(status().is(422));
         post(alice, DEPOSIT, key(), dep(a1, "10.00")).andExpect(status().is(422));
         post(bob, TRANSFER, key(), xfer(b1, a1, "10.00")).andExpect(status().is(422));

@@ -31,6 +31,9 @@ public class ApiException extends RuntimeException {
         return new ApiException(HttpStatus.CONFLICT, "IDEMPOTENCY_CONFLICT",
                 "Idempotency key was already used with a different request");
     }
+    public static ApiException tooManyRequests(String msg) {
+        return new ApiException(HttpStatus.TOO_MANY_REQUESTS, "RATE_LIMITED", msg);
+    }
     public static ApiException conflict(String msg) {
         return new ApiException(HttpStatus.CONFLICT, "CONFLICT", msg);
     }

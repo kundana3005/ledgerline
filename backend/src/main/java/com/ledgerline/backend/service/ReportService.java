@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.util.Set;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -32,6 +33,17 @@ public class ReportService {
     private final AccountRepository accounts;
     private final UserRepository users;
     private final AccountRequestRepository requestRepo;
+
+    private static final Set<String> SORTABLE = Set.of("id", "createdAt", "amount", "type");
+
+    private Pageable txPageable(int page, int size, TransactionFilter f) {
+        String prop = f.sort() == null || f.sort().isBlank() ? "id" : f.sort();
+        if (!SORTABLE.contains(prop)) throw ApiException.badRequest("Unsupported sort field");
+        Sort.Direction d = "asc".equalsIgnoreCase(f.dir()) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort sort = Sort.by(d, prop);
+        if (!prop.equals("id")) sort = sort.and(Sort.by(Sort.Direction.DESC, "id"));
+        return PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), sort);
+    }
 
     public ReportService(TransactionRepository txs, LedgerEntryRepository ledgerRepo,
                          AuditLogRepository auditRepo, AccountRepository accounts, UserRepository users,
@@ -54,6 +66,9 @@ public class ReportService {
             }
             if (f.type() != null) where.add(cb.equal(root.get("type"), f.type()));
             if (f.status() != null) where.add(cb.equal(root.get("status"), f.status()));
+            if (f.id() != null) where.add(cb.equal(root.get("id"), f.id()));
+            if (f.minAmount() != null) where.add(cb.greaterThanOrEqualTo(root.<BigDecimal>get("amount"), f.minAmount()));
+            if (f.maxAmount() != null) where.add(cb.lessThanOrEqualTo(root.<BigDecimal>get("amount"), f.maxAmount()));
             if (f.search() != null && !f.search().isBlank()) {
                 String like = like(f.search());
                 where.add(cb.or(
@@ -71,7 +86,7 @@ public class ReportService {
         };
 
         boolean includeInitiator = ownerId == null;   // do not reveal other customers' usernames to account holders
-        Page<Transaction> result = txs.findAll(spec, pageable(page, size));
+        Page<Transaction> result = txs.findAll(spec, txPageable(page, size, f));
         return PageResponse.of(result.map(t -> toSummary(t, includeInitiator)));
     }
 

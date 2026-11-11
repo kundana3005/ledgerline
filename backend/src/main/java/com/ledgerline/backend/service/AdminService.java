@@ -25,11 +25,12 @@ public class AdminService {
     private final AccountRequestRepository requests;
     private final PasswordEncoder encoder;
     private final AuditService audit;
+    private final NotificationService notifications;
 
     public AdminService(UserRepository users, AccountRepository accounts, AccountRequestRepository requests,
-                        PasswordEncoder encoder, AuditService audit) {
+                        PasswordEncoder encoder, AuditService audit, NotificationService notifications) {
         this.users = users; this.accounts = accounts; this.requests = requests;
-        this.encoder = encoder; this.audit = audit;
+        this.encoder = encoder; this.audit = audit; this.notifications = notifications;
     }
 
     // ---------- users ----------
@@ -88,6 +89,9 @@ public class AdminService {
         Map<String, String> details = approved ? Map.of("email", u.getEmail())
                 : Map.of("email", u.getEmail(), "reason", why);
         audit.log(adminId, approved ? "USER_APPROVED" : "USER_REJECTED", "USER", String.valueOf(userId), details);
+        notifications.notify(userId, approved ? "REGISTRATION_APPROVED" : "REGISTRATION_REJECTED",
+                approved ? "Your registration was approved. You can now request an account."
+                         : "Your registration was not approved. Reason: " + why);
         return UserSummary.from(u);
     }
 
@@ -116,10 +120,14 @@ public class AdminService {
             r.decide(AccountRequestStatus.APPROVED, admin, null);
             audit.log(adminId, "ACCOUNT_REQUEST_APPROVED", "ACCOUNT_REQUEST", String.valueOf(requestId),
                     Map.of("account", a.getAccountNumber(), "owner", owner.getEmail(), "type", r.getAccountType().name()));
+            notifications.notify(owner.getId(), "ACCOUNT_REQUEST_APPROVED",
+                    "Your account request was approved. Your new account number is " + a.getAccountNumber() + ".");
         } else {
             r.decide(AccountRequestStatus.REJECTED, admin, why);
             audit.log(adminId, "ACCOUNT_REQUEST_REJECTED", "ACCOUNT_REQUEST", String.valueOf(requestId),
                     Map.of("owner", owner.getEmail(), "reason", why));
+            notifications.notify(owner.getId(), "ACCOUNT_REQUEST_REJECTED",
+                    "Your account request was not approved. Reason: " + why);
         }
         return AccountRequestAdminView.from(r);
     }
@@ -155,6 +163,7 @@ public class AdminService {
 
     @Transactional
     public AdminAccountView setAccountStatus(Long adminId, Long accountId, AccountStatus status) {
+        if (status == AccountStatus.PENDING) throw ApiException.badRequest("Accounts cannot be moved back to PENDING");
         // Same row lock that transfers use, so a status change cannot race a money movement
         List<Account> locked = accounts.lockAllByIdIn(List.of(accountId));
         if (locked.isEmpty()) throw ApiException.notFound();
@@ -171,6 +180,14 @@ public class AdminService {
         a.setStatus(status);
         audit.log(adminId, "ACCOUNT_STATUS_CHANGED", "ACCOUNT", a.getAccountNumber(),
                 Map.of("from", old.name(), "to", status.name()));
+        if (a.getOwner() != null && old != status) {
+            String num = a.getAccountNumber();
+            notifications.notify(a.getOwner().getId(),
+                    status == AccountStatus.SUSPENDED ? "ACCOUNT_SUSPENDED" : "ACCOUNT_STATUS_CHANGED",
+                    status == AccountStatus.SUSPENDED
+                            ? "Your account " + num + " has been suspended. Please contact support."
+                            : "The status of your account " + num + " is now " + status.name() + ".");
+        }
         return AdminAccountView.from(a);
     }
 

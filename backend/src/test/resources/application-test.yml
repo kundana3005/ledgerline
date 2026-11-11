@@ -1,7 +1,14 @@
-   spring:
-     datasource:
-       url: jdbc:postgresql://localhost:5432/ledgerline_test
-       username: ledgerline
-       password: ledgerline123
-       hikari:
-         maximum-pool-size: 20
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ledgerline_test
+    username: ledgerline
+    password: ${DB_PASSWORD:ledgerline123}
+    hikari:
+      maximum-pool-size: 20
+  flyway:
+    url: jdbc:postgresql://localhost:5432/ledgerline_test
+    user: ledgerline
+    password: ${DB_PASSWORD:ledgerline123}
+app:
+  rate-limit:
+    enabled: false

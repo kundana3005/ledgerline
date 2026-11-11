@@ -1,3 +1,3 @@
 package com.ledgerline.backend.entity;
 
-public enum AccountStatus { ACTIVE, FROZEN, CLOSED }
+public enum AccountStatus { PENDING, ACTIVE, SUSPENDED, CLOSED }

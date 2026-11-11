@@ -25,12 +25,27 @@ public class LedgerService {
     private final LedgerEntryRepository ledger;
     private final UserRepository users;
     private final AuditService audit;
+    private final NotificationService notifications;
 
     public LedgerService(AccountRepository accounts, TransactionRepository txs,
-                         LedgerEntryRepository ledger, UserRepository users, AuditService audit) {
+                         LedgerEntryRepository ledger, UserRepository users, AuditService audit,
+                         NotificationService notifications) {
         this.accounts = accounts; this.txs = txs; this.ledger = ledger;
-        this.users = users; this.audit = audit;
+        this.users = users; this.audit = audit; this.notifications = notifications;
     }
+
+        private static String mask(String n) { return n.length() <= 4 ? n : "****" + n.substring(n.length() - 4); }
+
+    private String describe(TransactionType type, BigDecimal amount, Account src, Account dst) {
+        String a = amount.toPlainString();
+        return switch (type) {
+            case DEPOSIT -> "Deposit of " + a + " to account " + mask(dst.getAccountNumber()) + " completed.";
+            case WITHDRAWAL -> "Withdrawal of " + a + " from account " + mask(src.getAccountNumber()) + " completed.";
+            case TRANSFER -> "Transfer of " + a + " from account " + mask(src.getAccountNumber())
+                    + " to account " + mask(dst.getAccountNumber()) + " completed.";
+        };
+    }
+    
 
     // Deposit: DEBIT system cash, CREDIT the customer account
     @Transactional
@@ -116,7 +131,11 @@ public class LedgerService {
         // 7. Audit record joins this transaction: all or nothing
         audit.log(actorId, type + "_COMPLETED", "TRANSACTION", tx.getReference(),
                 Map.of("amount", amount.toPlainString(), "from", srcNumber, "to", dstNumber));
-
+                notifications.notify(actorId, "TRANSACTION_COMPLETED", describe(type, amount, src, dst));
+        if (type == TransactionType.TRANSFER && dst.getOwner() != null && !dst.getOwner().getId().equals(actorId)) {
+            notifications.notify(dst.getOwner().getId(), "MONEY_RECEIVED",
+                    "You received " + amount.toPlainString() + " in account " + mask(dst.getAccountNumber()) + ".");
+        }
         return TransactionResponse.from(tx, false);
     }
 

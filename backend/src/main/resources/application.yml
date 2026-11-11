@@ -1,5 +1,6 @@
 server:
   port: ${PORT:8081}
+  forward-headers-strategy: native
 spring:
   application:
     name: backend
@@ -7,13 +8,38 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/ledgerline}
     username: ${DB_USER:ledgerline}
     password: ${DB_PASSWORD:ledgerline123}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 500ms
+      connect-timeout: 500ms
+      ssl:
+        enabled: ${REDIS_SSL:false}
   jpa:
     hibernate:
       ddl-auto: validate
     open-in-view: false
-  flyway:
+    flyway:
     enabled: true
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ledgerline}
+    user: ${MIGRATION_USER:${DB_USER:ledgerline}}
+    password: ${MIGRATION_PASSWORD:${DB_PASSWORD:ledgerline123}}
 app:
   jwt-secret: ${JWT_SECRET:kyBaTx0W5PhOwj8pvYUzMQtfg9nJ6ZqSr4duGoDlbAsie2EL}
   jwt-expiry-minutes: 30
   cors-origins: ${CORS_ORIGINS:http://localhost:5173}
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  password-reset:
+    expiry-minutes: 30
+    log-link: ${LOG_RESET_LINK:true}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    store: ${RATE_LIMIT_STORE:memory}
+    login-per-minute: 10
+    register-per-hour: 5
+    forgot-per-hour: 5
+    reset-per-hour: 10
+    password-change-per-hour: 5
+    transactions-per-minute: 30

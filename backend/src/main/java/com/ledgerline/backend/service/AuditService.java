@@ -12,7 +12,7 @@ import java.util.Map;
 @Service
 public class AuditService {
     private final AuditLogRepository repo;
-
+        public String clientIp() { return currentIp(); }
     public AuditService(AuditLogRepository repo) { this.repo = repo; }
 
     /** Joins the caller's transaction: if the money movement rolls back, so does this record. */

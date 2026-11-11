@@ -37,13 +37,14 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/api/health", "/api/auth/login", "/api/auth/register").permitAll()
+                .requestMatchers("/api/health", "/api/auth/login", "/api/auth/register",
+                        "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/auditor/**").hasAnyRole("AUDITOR", "ADMIN")
                 .requestMatchers("/api/auditor/**").denyAll()
-                .requestMatchers("/api/onboarding/status").hasAnyRole("APPLICANT", "ACCOUNT_HOLDER")
+                .requestMatchers("/api/onboarding/status", "/api/notifications/**").hasAnyRole("APPLICANT", "ACCOUNT_HOLDER")
                 .requestMatchers("/api/onboarding/**").hasRole("ACCOUNT_HOLDER")
-                .requestMatchers("/api/accounts/**", "/api/transactions/**").hasRole("ACCOUNT_HOLDER")
+                .requestMatchers("/api/accounts/**", "/api/transactions/**", "/api/analytics/**").hasRole("ACCOUNT_HOLDER")
                 .anyRequest().authenticated())
             .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(jwtConverter(users))));
         return http.build();

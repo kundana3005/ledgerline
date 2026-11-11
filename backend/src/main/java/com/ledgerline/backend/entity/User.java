@@ -66,4 +66,5 @@ public class User {
     public String getRejectionReason() { return rejectionReason; }
     public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
     public Instant getCreatedAt() { return createdAt; }
+    public void setPasswordHash(String h) { this.passwordHash = h; }
 }

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight } from 'lucide-react';
 import { api } from '../api/client';
 import { useFetch } from '../hooks';
+import { Bars, Distribution } from '../components/Charts';
 import { Alert, Badge, Card, DataTable, Stat, dateTime, money } from '../components/ui';
 
 export const txColumns = [
@@ -17,15 +18,18 @@ export const txColumns = [
 export default function Dashboard() {
   const accounts = useFetch(() => api('/api/accounts'), []);
   const recent = useFetch(() => api('/api/transactions?size=5'), []);
-  const total = (accounts.data || []).reduce((s, a) => s + Number(a.balance), 0);
+  const stats = useFetch(() => api('/api/analytics/me?months=6'), []);
+  const a = stats.data;
 
   return (
     <>
       <h1 className="page-title">Dashboard</h1>
-      <Alert>{accounts.error || recent.error}</Alert>
+      <Alert>{accounts.error || recent.error || stats.error}</Alert>
 
-      <div className="grid stats">
-        <Stat label="Total balance" value={money(total)} hint={`${accounts.data?.length ?? 0} accounts`} />
+      <div className="grid stats4">
+        <Stat label="Current balance" value={money(a?.currentBalance ?? 0)} hint={`${accounts.data?.length ?? 0} accounts`} />
+        <Stat label="Money received" value={money(a?.totalReceived ?? 0)} hint="Deposits and incoming transfers" />
+        <Stat label="Money sent" value={money(a?.totalSent ?? 0)} hint="Withdrawals and outgoing transfers" />
         <div className="card quick">
           <span className="stat-label">Quick actions</span>
           <div className="quick-row">
@@ -36,13 +40,22 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="grid two">
+        <Card title="Monthly summary">
+          <Bars data={a?.monthly} xKey="month" series={[{ key: 'received', name: 'Received' }, { key: 'sent', name: 'Sent' }]} />
+        </Card>
+        <Card title="Transaction types">
+          <Distribution data={a?.typeDistribution} nameKey="type" valueKey="transactions" />
+        </Card>
+      </div>
+
       <Card title="Your accounts">
         <div className="grid accounts">
-          {(accounts.data || []).map((a) => (
-            <div key={a.id} className="acct">
-              <div className="acct-top"><span>{a.type}</span><Badge value={a.status} /></div>
-              <div className="acct-num">{a.accountNumber}</div>
-              <div className="acct-bal">{money(a.balance)}</div>
+          {(accounts.data || []).map((x) => (
+            <div key={x.id} className="acct">
+              <div className="acct-top"><span>{x.type}</span><Badge value={x.status} /></div>
+              <div className="acct-num">{x.accountNumber}</div>
+              <div className="acct-bal">{money(x.balance)}</div>
             </div>
           ))}
         </div>

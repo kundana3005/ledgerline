@@ -1,21 +1,34 @@
 import { useState } from 'react';
-import { api, qs } from '../api/client';
+import { Download } from 'lucide-react';
+import { api, download, qs } from '../api/client';
 import { useFetch } from '../hooks';
 import { Alert, Badge, Card, DataTable, Stat, dateTime, money } from '../components/ui';
 
 function Statement({ account }) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [err, setErr] = useState('');
   const { data, loading, error } = useFetch(
     () => api(`/api/accounts/${account.id}/statement${qs({ from, to })}`), [account.id, from, to]);
 
+  const save = async (format) => {
+    setErr('');
+    try { await download(`/api/accounts/${account.id}/statement/export${qs({ format, from, to })}`,
+      `statement-${account.accountNumber}.${format}`); }
+    catch (e) { setErr(e.message); }
+  };
+
   return (
-    <Card title={`Statement: ${account.accountNumber}`}>
+    <Card title={`Statement: ${account.accountNumber}`}
+      action={<div className="row">
+        <button className="btn ghost small" onClick={() => save('csv')}><Download size={14} /> CSV</button>
+        <button className="btn ghost small" onClick={() => save('pdf')}><Download size={14} /> PDF</button>
+      </div>}>
       <div className="filters">
         <label>From <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
         <label>To <input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
       </div>
-      <Alert>{error}</Alert>
+      <Alert>{error || err}</Alert>
       {data && (
         <>
           <p className="muted">Period {data.from} to {data.to} (UTC days)</p>
@@ -49,7 +62,7 @@ export default function Accounts() {
       <h1 className="page-title">Accounts</h1>
       <Alert>{error}</Alert>
       <Card>
-        <DataTable loading={loading} rows={data} empty="You have no accounts yet. Ask an administrator to open one."
+        <DataTable loading={loading} rows={data} empty="You have no accounts yet. Request one from Open an account."
           columns={[
             { key: 'accountNumber', label: 'Account number' },
             { key: 'type', label: 'Type' },

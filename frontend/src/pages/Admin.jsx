@@ -5,14 +5,17 @@ import { useAuth } from '../auth/AuthContext';
 import { useFetch } from '../hooks';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Alert, Badge, Card, DataTable, Pagination, Stat, dateTime, money } from '../components/ui';
+import { Bars, Distribution } from '../components/Charts';
 
 function Overview() {
   const stats = useFetch(() => api('/api/admin/stats'), []);
+  const trend = useFetch(() => api('/api/admin/analytics?days=30'), []);
   const recent = useFetch(() => api('/api/auditor/audit-logs?size=8'), []);
   const s = stats.data;
+  const t = trend.data;
   return (
     <>
-      <Alert>{stats.error}</Alert>
+      <Alert>{stats.error || trend.error}</Alert>
       {s && (
         <>
           <div className="grid stats4">
@@ -34,6 +37,14 @@ function Overview() {
           </div>
         </>
       )}
+      <div className="grid two">
+        <Card title="Daily volume (last 30 days)"><Bars data={t?.daily} xKey="day" series={[{ key: 'volume', name: 'Volume' }]} /></Card>
+        <Card title="Monthly transactions"><Bars data={t?.monthly} xKey="month" series={[{ key: 'transactions', name: 'Transactions' }]} /></Card>
+      </div>
+      <div className="grid two">
+        <Card title="Transactions by type"><Distribution data={t?.byType} nameKey="type" valueKey="transactions" /></Card>
+        <Card title="Accounts by status"><Distribution data={t?.accountStatus} nameKey="status" valueKey="accounts" /></Card>
+      </div>
       <Card title="Recent system activity" action={<Link to="/auditor" className="link">Ledger, transactions and audit logs</Link>}>
         <Alert>{recent.error}</Alert>
         <DataTable loading={recent.loading} rows={recent.data?.content} empty="No activity yet."
@@ -212,7 +223,7 @@ function AccountsTab() {
           { key: 'status', label: 'Status', render: (a) => <Badge value={a.status} /> },
           { key: 'act', label: 'Change status', render: (a) => (a.type === 'SYSTEM' ? '-' : (
             <select value={a.status} onChange={(e) => e.target.value !== a.status && setDialog({ account: a, status: e.target.value })}>
-              <option>ACTIVE</option><option>FROZEN</option><option>CLOSED</option>
+              <option>ACTIVE</option><option>SUSPENDED</option><option>CLOSED</option>
             </select>)) },
         ]} />
       <form className="inline-form" onSubmit={create}>

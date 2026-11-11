@@ -29,7 +29,7 @@ export default function Login() {
   return (
     <div className="login-page">
       <form className="card login-card" onSubmit={submit} noValidate>
-        <div className="login-brand"><Landmark size={28} /><h1>LedgerLine</h1></div>
+        <div className="login-brand"><Landmark size={28} /><h1>Balance Vault</h1></div>
         <p className="muted">Secure money movement with a ledger you can prove.</p>
         <Alert>{error}</Alert>
         <label>Username or email
@@ -39,6 +39,7 @@ export default function Login() {
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
         </label>
         <button className="btn primary" disabled={busy}>{busy ? 'Signing in...' : 'Sign in'}</button>
+        <p className="muted"><Link className="link" to="/forgot-password">Forgot password?</Link></p>
         <p className="muted">New here? <Link className="link" to="/register">Create an account</Link></p>
         <div className="demo">
           <strong>Demo logins</strong>

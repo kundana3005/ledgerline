@@ -36,3 +36,21 @@ export const qs = (obj) => {
   const s = p.toString();
   return s ? `?${s}` : '';
 };
+
+export async function download(path, filename) {
+  const token = sessionStorage.getItem('ll_token');
+  let res;
+  try { res = await fetch(BASE + path, { headers: { Authorization: `Bearer ${token}` } }); }
+  catch { throw new ApiError(0, 'NETWORK', 'Cannot reach the server. Please try again.'); }
+  if (!res.ok) {
+    let message = `Download failed (${res.status})`;
+    try { message = (await res.json()).message || message; } catch { /* no body */ }
+    if (res.status === 401) onUnauthorized();
+    throw new ApiError(res.status, null, message);
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}

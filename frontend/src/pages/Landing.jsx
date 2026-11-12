@@ -18,7 +18,7 @@ export default function Landing() {
   return (
     <div className="landing">
       <header className="land-nav">
-        <div className="brand dark"><Landmark size={22} /> LedgerLine</div>
+        <div className="brand dark"><Landmark size={22} /> Balance Vault</div>
         <div className="row">
           <Link className="btn ghost" to="/login">Sign in</Link>
           <Link className="btn primary" to="/register">Sign up</Link>
@@ -27,7 +27,7 @@ export default function Landing() {
 
       <section className="hero">
         <h1>Secure money movement with a ledger you can prove.</h1>
-        <p>LedgerLine is a financial management platform where every transaction is authorized,
+        <p>Balance Vault is a financial management platform where every transaction is authorized,
           processed exactly once, recorded in a double-entry ledger and traceable through an audit trail.</p>
         <div className="row center">
           <Link className="btn primary big" to="/register">Create an account</Link>
@@ -57,7 +57,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="land-foot muted">LedgerLine &middot; React, Spring Boot and PostgreSQL</footer>
+      <footer className="land-foot muted">Balance Vault &middot; React, Spring Boot and PostgreSQL</footer>
     </div>
   );
 }
